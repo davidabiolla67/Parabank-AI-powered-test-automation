@@ -15,42 +15,37 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: User login Trigger TestRigor test suite
-        env:
-          TESTRIGOR_AUTH_TOKEN: ${{ secrets.TESTRIGOR_AUTH_TOKEN }}
-          TESTRIGOR_APP_ID: ${{ secrets.TESTRIGOR_APP_ID }}
+      - name: Trigger TestRigor test suite
         run: |
-          echo "Triggering TestRigor tests..."
-
-          curl -X POST \
-            -H "Content-type: application/json" \
-            -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
+          # Trigger the test suite
+          response=$(curl -s -X POST \
+            -H 'Content-type: application/json' \
+            -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
             --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
-            https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/retest
-
+            https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/retest)
+          echo "Triggered test suite"
+          echo "$response"
           sleep 10
 
-          while true
-          do
+          # Polling the test status
+          while true; do
             echo " "
             echo "==================================="
             echo " Checking run status"
             echo "==================================="
-
-            response=$(curl -i -o - -s -X GET \
-              https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/status \
-              -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
-              -H "Accept: application/json")
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-            body=$(echo "$response" | sed -n '/{/,/}/p')
-
+            
+            status_response=$(curl -s -X GET \
+              -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
+              -H 'Accept: application/json' \
+              https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/status)
+            
+            code=$(echo "$status_response" | jq -r '.statusCode')
+            echo "Response: $status_response"
             echo "Status code: $code"
-            echo "Response: $body"
-
+            
             case $code in
-              4*|5*)
-                echo "Error calling TestRigor API"
+              4??|5??)
+                echo "Error calling API"
                 exit 1
                 ;;
               200)
@@ -58,21 +53,20 @@ jobs:
                 exit 0
                 ;;
               227|228)
-                echo "Test is still running"
+                echo "Test is not finished yet"
                 ;;
               229)
-                echo " Test canceled"
+                echo "Test canceled"
                 exit 1
                 ;;
               230)
-                echo " Test finished but failed"
+                echo "Test finished but failed"
                 exit 1
                 ;;
               *)
-                echo " Unknown status"
+                echo "Unknown status"
                 exit 1
                 ;;
             esac
-
             sleep 10
           done
