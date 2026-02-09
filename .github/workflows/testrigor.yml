@@ -14,15 +14,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trigger TestRigor test suite
+        env:
+          TESTRIGOR_AUTH_TOKEN: ${{ secrets.TESTRIGOR_AUTH_TOKEN }}
+          TESTRIGOR_APP_ID: ${{ secrets.TESTRIGOR_APP_ID }}
         run: |
+          echo "Triggering TestRigor tests..."
+
+          # Trigger the suite
           curl -X POST \
             -H "Content-type: application/json" \
-            -H "auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4" \
+            -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
             --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
-            https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/retest
+            https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/retest
 
           sleep 10
 
+          # Poll for status
           while true
           do
             echo " "
@@ -30,9 +37,9 @@ jobs:
             echo " Checking run status"
             echo "==================================="
 
-            response=$(curl -i -s -X GET \
-              https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/status \
-              -H "auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4" \
+            response=$(curl -i -o - -s -X GET \
+              https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/status \
+              -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
               -H "Accept: application/json")
 
             code=$(echo "$response" | grep HTTP | awk '{print $2}')
@@ -43,26 +50,26 @@ jobs:
 
             case $code in
               4*|5*)
-                echo "Error calling API"
+                echo "❌ Error calling TestRigor API"
                 exit 1
                 ;;
               200)
-                echo "Test finished successfully"
+                echo "✅ Test finished successfully"
                 exit 0
                 ;;
               227|228)
-                echo "Test is not finished yet"
+                echo "⏳ Test is still running"
                 ;;
               229)
-                echo "Test canceled"
+                echo "❌ Test canceled"
                 exit 1
                 ;;
               230)
-                echo "Test finished but failed"
+                echo "❌ Test finished but failed"
                 exit 1
                 ;;
               *)
-                echo "Unknown status"
+                echo "❓ Unknown status"
                 exit 1
                 ;;
             esac
