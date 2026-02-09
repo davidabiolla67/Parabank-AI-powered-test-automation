@@ -6,73 +6,129 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-testrigor-tests:
+  userlogin-test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Trigger TestRigor test suite
+      - name: Run User Login Test Suite
         env:
           TESTRIGOR_AUTH_TOKEN: ${{ secrets.TESTRIGOR_AUTH_TOKEN }}
-          TESTRIGOR_APP_ID: ${{ secrets.TESTRIGOR_APP_ID }}
+          TESTRIGOR_APP_ID_USERLOGIN: ${{ secrets.TESTRIGOR_APP_ID_USERLOGIN }}
         run: |
-          echo "Triggering TestRigor tests..."
-
-          # Trigger the suite
-          curl -X POST \
-            -H "Content-type: application/json" \
-            -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
-            --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
-            https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/retest
-
-          sleep 10
-
-          # Poll for status
-          while true
-          do
-            echo " "
-            echo "==================================="
-            echo " Checking run status"
-            echo "==================================="
-
-            response=$(curl -i -o - -s -X GET \
-              https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/status \
+          trigger_test() {
+            APP_ID=$1
+            echo "Triggering TestRigor test suite: $APP_ID"
+            curl -X POST \
+              -H "Content-type: application/json" \
               -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
-              -H "Accept: application/json")
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-            body=$(echo "$response" | sed -n '/{/,/}/p')
-
-            echo "Status code: $code"
-            echo "Response: $body"
-
-            case $code in
-              4*|5*)
-                echo "❌ Error calling TestRigor API"
-                exit 1
-                ;;
-              200)
-                echo "✅ Test finished successfully"
-                exit 0
-                ;;
-              227|228)
-                echo "⏳ Test is still running"
-                ;;
-              229)
-                echo "❌ Test canceled"
-                exit 1
-                ;;
-              230)
-                echo "❌ Test finished but failed"
-                exit 1
-                ;;
-              *)
-                echo "❓ Unknown status"
-                exit 1
-                ;;
-            esac
+              --data '{"forceCancelPreviousTesting":true}' \
+              "https://api.testrigor.com/api/v1/apps/$APP_ID/retest"
 
             sleep 10
-          done
+
+            while true; do
+              echo "Checking status for $APP_ID..."
+              response=$(curl -s -i -X GET "https://api.testrigor.com/api/v1/apps/$APP_ID/status" \
+                -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
+                -H "Accept: application/json")
+              code=$(echo "$response" | grep HTTP | awk '{print $2}')
+              body=$(echo "$response" | sed -n '/{/,/}/p')
+              echo "Status code: $code"
+              echo "Response: $body"
+
+              case $code in
+                4*|5*)
+                  echo " API Error"
+                  return 1
+                  ;;
+                200)
+                  echo " Test finished successfully"
+                  return 0
+                  ;;
+                227|228)
+                  echo " Test running..."
+                  ;;
+                229)
+                  echo "Test canceled"
+                  return 1
+                  ;;
+                230)
+                  echo " Test failed"
+                  return 1
+                  ;;
+                *)
+                  echo " Unknown status"
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+          }
+
+          trigger_test $TESTRIGOR_APP_ID_USERLOGIN
+
+  registration-test:
+    runs-on: ubuntu-latest
+    needs: userlogin-test
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Run Registration Test Suite
+        env:
+          TESTRIGOR_AUTH_TOKEN: ${{ secrets.TESTRIGOR_AUTH_TOKEN }}
+          TESTRIGOR_APP_ID_REGISTRATION: ${{ secrets.TESTRIGOR_APP_ID_REGISTRATION }}
+        run: |
+          trigger_test() {
+            APP_ID=$1
+            echo "Triggering TestRigor test suite: $APP_ID"
+            curl -X POST \
+              -H "Content-type: application/json" \
+              -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
+              --data '{"forceCancelPreviousTesting":true}' \
+              "https://api.testrigor.com/api/v1/apps/$APP_ID/retest"
+
+            sleep 10
+
+            while true; do
+              echo "Checking status for $APP_ID..."
+              response=$(curl -s -i -X GET "https://api.testrigor.com/api/v1/apps/$APP_ID/status" \
+                -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
+                -H "Accept: application/json")
+              code=$(echo "$response" | grep HTTP | awk '{print $2}')
+              body=$(echo "$response" | sed -n '/{/,/}/p')
+              echo "Status code: $code"
+              echo "Response: $body"
+
+              case $code in
+                4*|5*)
+                  echo " API Error"
+                  return 1
+                  ;;
+                200)
+                  echo "Test finished successfully"
+                  return 0
+                  ;;
+                227|228)
+                  echo " Test running..."
+                  ;;
+                229)
+                  echo " Test canceled"
+                  return 1
+                  ;;
+                230)
+                  echo "Test failed"
+                  return 1
+                  ;;
+                *)
+                  echo " Unknown status"
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+          }
+
+          trigger_test $TESTRIGOR_APP_ID_REGISTRATION
