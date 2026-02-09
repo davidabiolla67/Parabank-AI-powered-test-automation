@@ -3,8 +3,6 @@ name: TestRigor Bank App Automation
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -17,34 +15,34 @@ jobs:
 
       - name: Trigger TestRigor test suite
         run: |
-          # Trigger the test suite
-          response=$(curl -s -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
+          curl -X POST \
+            -H "Content-type: application/json" \
+            -H "auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4" \
             --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
-            https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/retest)
-          echo "Triggered test suite"
-          echo "$response"
+            https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/retest
+
           sleep 10
 
-          # Polling the test status
-          while true; do
+          while true
+          do
             echo " "
             echo "==================================="
             echo " Checking run status"
             echo "==================================="
-            
-            status_response=$(curl -s -X GET \
-              -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
-              -H 'Accept: application/json' \
-              https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/status)
-            
-            code=$(echo "$status_response" | jq -r '.statusCode')
-            echo "Response: $status_response"
+
+            response=$(curl -i -s -X GET \
+              https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/status \
+              -H "auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4" \
+              -H "Accept: application/json")
+
+            code=$(echo "$response" | grep HTTP | awk '{print $2}')
+            body=$(echo "$response" | sed -n '/{/,/}/p')
+
             echo "Status code: $code"
-            
+            echo "Response: $body"
+
             case $code in
-              4??|5??)
+              4*|5*)
                 echo "Error calling API"
                 exit 1
                 ;;
@@ -68,5 +66,6 @@ jobs:
                 exit 1
                 ;;
             esac
+
             sleep 10
           done
