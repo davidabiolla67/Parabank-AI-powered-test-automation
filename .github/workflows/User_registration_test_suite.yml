@@ -1,0 +1,69 @@
+name: TestRigor Bank App Automation
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  run-testrigor-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Registration Test Suite
+        run: |
+          echo "Triggering Registration Test Suite..."
+          
+          curl -X POST \
+            -H 'Content-type: application/json' \
+            -H 'auth-token: b7c8d9e0-1234-5678-90ab-cdef12345678' \
+            --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+            https://api.testrigor.com/api/v1/apps/FgHiJkLmNoPqRsTu/retest
+
+          sleep 10
+
+          while true; do
+            echo " "
+            echo "==================================="
+            echo " Checking Registration Suite Status"
+            echo "==================================="
+
+            response=$(curl -s -i -X GET 'https://api.testrigor.com/api/v1/apps/FgHiJkLmNoPqRsTu/status' \
+              -H 'auth-token: b7c8d9e0-1234-5678-90ab-cdef12345678' \
+              -H 'Accept: application/json')
+
+            code=$(echo "$response" | grep HTTP | awk '{print $2}')
+            body=$(echo "$response" | sed -n '/{/,/}/p')
+            echo "Status code: $code"
+            echo "Response: $body"
+
+            case $code in
+              4*|5*)
+                echo "API Error"
+                exit 1
+                ;;
+              200)
+                echo "Registration Suite finished successfully"
+                break
+                ;;
+              227|228)
+                echo " Test running..."
+                ;;
+              229)
+                echo " Test canceled"
+                exit 1
+                ;;
+              230)
+                echo " Test failed"
+                exit 1
+                ;;
+              *)
+                echo " Unknown status"
+                exit 1
+                ;;
+            esac
+            sleep 10
+          done
