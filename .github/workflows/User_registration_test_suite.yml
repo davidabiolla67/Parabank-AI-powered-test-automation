@@ -19,9 +19,9 @@ jobs:
           
           curl -X POST \
             -H 'Content-type: application/json' \
-            -H 'auth-token: b7c8d9e0-1234-5678-90ab-cdef12345678' \
+            -H 'auth-token: a6b5e7f4-e0c2-494c-9d89-d28050313e2f' \
             --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
-            https://api.testrigor.com/api/v1/apps/FgHiJkLmNoPqRsTu/retest
+            https://api.testrigor.com/api/v1/apps/EcReWL2JBgYqCQs3k/retest
 
           sleep 10
 
@@ -67,3 +67,65 @@ jobs:
             esac
             sleep 10
           done
+
+
+      - name: Run Login test suite
+        run: |
+                  echo "Triggering TestRigor tests..."
+
+                  # Trigger the suite
+                  curl -X POST \
+                    -H "Content-type: application/json" \
+                    -H "auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4" \
+                    --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+                    https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/retest
+
+                  sleep 10
+
+                  # Poll for status
+                  while true
+                  do
+                    echo " "
+                    echo "==================================="
+                    echo " Checking run status"
+                    echo "==================================="
+
+                    response=$(curl -i -o - -s -X GET \
+                      https://api.testrigor.com/api/v1/apps/$TESTRIGOR_APP_ID/status \
+                      -H "auth-token: $TESTRIGOR_AUTH_TOKEN" \
+                      -H "Accept: application/json")
+
+                    code=$(echo "$response" | grep HTTP | awk '{print $2}')
+                    body=$(echo "$response" | sed -n '/{/,/}/p')
+
+                    echo "Status code: $code"
+                    echo "Response: $body"
+
+                    case $code in
+                      4*|5*)
+                        echo " Error calling TestRigor API"
+                        exit 1
+                        ;;
+                      200)
+                        echo " Test finished successfully"
+                        exit 0
+                        ;;
+                      227|228)
+                        echo " Test is still running"
+                        ;;
+                      229)
+                        echo " Test canceled"
+                        exit 1
+                        ;;
+                      230)
+                        echo " Test finished but failed"
+                        exit 1
+                        ;;
+                      *)
+                        echo " Unknown status"
+                        exit 1
+                        ;;
+                    esac
+
+                    sleep 10
+                  done
