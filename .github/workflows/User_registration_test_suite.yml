@@ -14,30 +14,56 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Registration Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: a6b5e7f4-e0c2-494c-9d89-d28050313e2f' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/EcReWL2JBgYqCQs3k/retest
+                curl -X POST \
+                  -H 'Content-type: application/json' \
+                  -H 'auth-token: a6b5e7f4-e0c2-494c-9d89-d28050313e2f' \
+                  --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+                  https://api.testrigor.com/api/v1/apps/EcReWL2JBgYqCQs3k/retest
 
-          sleep 10
+                sleep 10
 
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/EcReWL2JBgYqCQs3k/status' \
-              -H 'auth-token: a6b5e7f4-e0c2-494c-9d89-d28050313e2f')
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
-
-            sleep 10
-          done
+                while true
+                do
+                  echo " "
+                  echo "==================================="
+                  echo " Checking run status"
+                  echo "==================================="
+                  response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/EcReWL2JBgYqCQs3k/status' -H 'auth-token: a6b5e7f4-e0c2-494c-9d89-d28050313e2f' -H 'Accept: application/json')
+                  code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+                  body=$(echo "$response" | sed -n '/{/,/}/p')
+                  echo "Status code: " $code
+                  echo "Response: " $body
+                  case $code in
+                    4*|5*)
+                      # 400 or 500 errors
+                      echo "Error calling API"
+                      exit 1
+                      ;;
+                    200)
+                      # 200: successfully finished
+                      echo "Test finished successfully"
+                      exit 0
+                      ;;
+                    227|228)
+                      # 227: New - 228: In progress
+                      echo "Test is not finished yet"
+                      ;;
+                    229)
+                      # 229: Canceled
+                      echo "Test canceled"
+                      exit 1
+                      ;;
+                    230)
+                      # 230: Failed
+                      echo "Test finished but failed"
+                      exit 1
+                      ;;
+                    *)
+                      echo "Unknown status"
+                      exit 1
+                    esac
+                  sleep 10
+                done
 
 
   login:
@@ -48,30 +74,57 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Login Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/retest
+                curl -X POST \
+                    -H 'Content-type: application/json' \
+                    -H 'auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4' \
+                    --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+                    https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/retest
 
-          sleep 10
+                 sleep 10
 
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/status' \
-              -H 'auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4')
+                 while true
+                  do
+                    echo " "
+                    echo "==================================="
+                    echo " Checking run status"
+                    echo "==================================="
+                    response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/CMGeEKGimv7sjdo9k/status' -H 'auth-token: 20b38529-f7a9-4134-a554-f28e4431c3f4' -H 'Accept: application/json')
+                    code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+                    body=$(echo "$response" | sed -n '/{/,/}/p')
+                    echo "Status code: " $code
+                    echo "Response: " $body
+                    case $code in
+                      4*|5*)
+                        # 400 or 500 errors
+                        echo "Error calling API"
+                        exit 1
+                        ;;
+                      200)
+                        # 200: successfully finished
+                        echo "Test finished successfully"
+                        exit 0
+                        ;;
+                      227|228)
+                        # 227: New - 228: In progress
+                        echo "Test is not finished yet"
+                        ;;
+                      229)
+                        # 229: Canceled
+                        echo "Test canceled"
+                        exit 1
+                        ;;
+                      230)
+                        # 230: Failed
+                        echo "Test finished but failed"
+                        exit 1
+                        ;;
+                      *)
+                        echo "Unknown status"
+                        exit 1
+                      esac
+                    sleep 10
+                 done
 
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
-
-            sleep 10
-          done
 
 
   account-opening:
@@ -82,30 +135,56 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Account Opening Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: 513115e3-7819-492b-adf1-558316dfe04d' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/rdMhsGj2niDpZ2Lh9/retest
+              curl -X POST \
+                -H 'Content-type: application/json' \
+                -H 'auth-token: 513115e3-7819-492b-adf1-558316dfe04d' \
+                --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+                https://api.testrigor.com/api/v1/apps/rdMhsGj2niDpZ2Lh9/retest
 
-          sleep 10
+              sleep 10
 
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/rdMhsGj2niDpZ2Lh9/status' \
-              -H 'auth-token: 513115e3-7819-492b-adf1-558316dfe04d')
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
-
-            sleep 10
-          done
+              while true
+              do
+                echo " "
+                echo "==================================="
+                echo " Checking run status"
+                echo "==================================="
+                response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/rdMhsGj2niDpZ2Lh9/status' -H 'auth-token: 513115e3-7819-492b-adf1-558316dfe04d' -H 'Accept: application/json')
+                code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+                body=$(echo "$response" | sed -n '/{/,/}/p')
+                echo "Status code: " $code
+                echo "Response: " $body
+                case $code in
+                  4*|5*)
+                    # 400 or 500 errors
+                    echo "Error calling API"
+                    exit 1
+                    ;;
+                  200)
+                    # 200: successfully finished
+                    echo "Test finished successfully"
+                    exit 0
+                    ;;
+                  227|228)
+                    # 227: New - 228: In progress
+                    echo "Test is not finished yet"
+                    ;;
+                  229)
+                    # 229: Canceled
+                    echo "Test canceled"
+                    exit 1
+                    ;;
+                  230)
+                    # 230: Failed
+                    echo "Test finished but failed"
+                    exit 1
+                    ;;
+                  *)
+                    echo "Unknown status"
+                    exit 1
+                  esac
+                sleep 10
+              done
 
 
   transfer:
@@ -116,30 +195,56 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Transfer Funds Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: 37b7140f-1cc9-4e89-919b-992b32b3d9fe' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/raPitYPKjFtfTHCA2/retest
+              curl -X POST \
+                -H 'Content-type: application/json' \
+                -H 'auth-token: 37b7140f-1cc9-4e89-919b-992b32b3d9fe' \
+                --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+                https://api.testrigor.com/api/v1/apps/raPitYPKjFtfTHCA2/retest
 
-          sleep 10
+              sleep 10
 
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/raPitYPKjFtfTHCA2/status' \
-              -H 'auth-token: 37b7140f-1cc9-4e89-919b-992b32b3d9fe')
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
-
-            sleep 10
-          done
+              while true
+              do
+                echo " "
+                echo "==================================="
+                echo " Checking run status"
+                echo "==================================="
+                response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/raPitYPKjFtfTHCA2/status' -H 'auth-token: 37b7140f-1cc9-4e89-919b-992b32b3d9fe' -H 'Accept: application/json')
+                code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+                body=$(echo "$response" | sed -n '/{/,/}/p')
+                echo "Status code: " $code
+                echo "Response: " $body
+                case $code in
+                  4*|5*)
+                    # 400 or 500 errors
+                    echo "Error calling API"
+                    exit 1
+                    ;;
+                  200)
+                    # 200: successfully finished
+                    echo "Test finished successfully"
+                    exit 0
+                    ;;
+                  227|228)
+                    # 227: New - 228: In progress
+                    echo "Test is not finished yet"
+                    ;;
+                  229)
+                    # 229: Canceled
+                    echo "Test canceled"
+                    exit 1
+                    ;;
+                  230)
+                    # 230: Failed
+                    echo "Test finished but failed"
+                    exit 1
+                    ;;
+                  *)
+                    echo "Unknown status"
+                    exit 1
+                  esac
+                sleep 10
+              done
 
 
   billpay:
@@ -150,30 +255,56 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Bill Pay Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: b11f60f6-82b5-453f-9422-a55d74e0d013' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/tAH7c9kofBL3sADue/retest
-
-          sleep 10
-
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/tAH7c9kofBL3sADue/status' \
-              -H 'auth-token: b11f60f6-82b5-453f-9422-a55d74e0d013')
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
+            curl -X POST \
+              -H 'Content-type: application/json' \
+              -H 'auth-token: b11f60f6-82b5-453f-9422-a55d74e0d013' \
+              --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+              https://api.testrigor.com/api/v1/apps/tAH7c9kofBL3sADue/retest
 
             sleep 10
-          done
+
+            while true
+            do
+              echo " "
+              echo "==================================="
+              echo " Checking run status"
+              echo "==================================="
+              response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/tAH7c9kofBL3sADue/status' -H 'auth-token: b11f60f6-82b5-453f-9422-a55d74e0d013' -H 'Accept: application/json')
+              code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+              body=$(echo "$response" | sed -n '/{/,/}/p')
+              echo "Status code: " $code
+              echo "Response: " $body
+              case $code in
+                4*|5*)
+                  # 400 or 500 errors
+                  echo "Error calling API"
+                  exit 1
+                  ;;
+                200)
+                  # 200: successfully finished
+                  echo "Test finished successfully"
+                  exit 0
+                  ;;
+                227|228)
+                  # 227: New - 228: In progress
+                  echo "Test is not finished yet"
+                  ;;
+                229)
+                  # 229: Canceled
+                  echo "Test canceled"
+                  exit 1
+                  ;;
+                230)
+                  # 230: Failed
+                  echo "Test finished but failed"
+                  exit 1
+                  ;;
+                *)
+                  echo "Unknown status"
+                  exit 1
+                esac
+              sleep 10
+            done
 
 
   loan:
@@ -184,27 +315,53 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run Loan Request Test Suite
         run: |
-          curl -X POST \
-            -H 'Content-type: application/json' \
-            -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
-            --data '{"forceCancelPreviousTesting":true}' \
-            https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/retest
-
-          sleep 10
-
-          while true; do
-            response=$(curl -i -o - -s -X GET \
-              'https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/status' \
-              -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f')
-
-            code=$(echo "$response" | grep HTTP | awk '{print $2}')
-
-            case $code in
-              200) exit 0 ;;
-              227|228) echo "Still running..." ;;
-              229|230|4*|5*) exit 1 ;;
-              *) exit 1 ;;
-            esac
+            curl -X POST \
+              -H 'Content-type: application/json' \
+              -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' \
+              --data '{"forceCancelPreviousTesting":true,"storedValues":{"storedValueName1":"Value"}}' \
+              https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/retest
 
             sleep 10
-          done
+
+            while true
+            do
+              echo " "
+              echo "==================================="
+              echo " Checking run status"
+              echo "==================================="
+              response=$(curl -i -o - -s -X GET 'https://api.testrigor.com/api/v1/apps/ppAQmiFMGDoG3u7fb/status' -H 'auth-token: 2e1076d8-69a2-479f-8ee9-218e6cbd305f' -H 'Accept: application/json')
+              code=$(echo "$response" | grep HTTP |  awk '{print $2}')
+              body=$(echo "$response" | sed -n '/{/,/}/p')
+              echo "Status code: " $code
+              echo "Response: " $body
+              case $code in
+                4*|5*)
+                  # 400 or 500 errors
+                  echo "Error calling API"
+                  exit 1
+                  ;;
+                200)
+                  # 200: successfully finished
+                  echo "Test finished successfully"
+                  exit 0
+                  ;;
+                227|228)
+                  # 227: New - 228: In progress
+                  echo "Test is not finished yet"
+                  ;;
+                229)
+                  # 229: Canceled
+                  echo "Test canceled"
+                  exit 1
+                  ;;
+                230)
+                  # 230: Failed
+                  echo "Test finished but failed"
+                  exit 1
+                  ;;
+                *)
+                  echo "Unknown status"
+                  exit 1
+                esac
+              sleep 10
+            done
