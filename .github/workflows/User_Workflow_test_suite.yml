@@ -7,10 +7,11 @@ on:
 
 jobs:
 
+
+
   login:
     name: Login Test Suite
     runs-on: ubuntu-latest
-    needs: registration
     steps:
       - uses: actions/checkout@v4
       - name: Run Login Test Suite
