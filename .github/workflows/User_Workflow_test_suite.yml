@@ -1,9 +1,6 @@
 name: TestRigor Bank App Automation
 
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
+
 
 jobs:
 
